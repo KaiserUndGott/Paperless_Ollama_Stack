@@ -5,6 +5,28 @@ Alle bemerkenswerten Änderungen an diesem Projekt werden in dieser Datei dokume
 Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/),
 und dieses Projekt hält sich an [Semantic Versioning](https://semver.org/lang/de/).
 
+## [12.1.2] - 2025-11-25
+
+### Behoben
+- **Ollama Container Startup**: Robuste Warteschleife mit API-Prüfung vor Modell-Download
+- **Gemma2:9B Download**: Verbesserte Fehlerbehandlung und Fortschrittsanzeige
+- **Container-Bereitschaft**: Neue `wait_for_ollama()` Funktion prüft Container-Status und API-Verfügbarkeit
+- **Download-Verifizierung**: Überprüfung dass Modell nach Download verfügbar ist
+- **Fehlerdiagnose**: Detaillierte Fehlermeldungen mit Troubleshooting-Hinweisen
+
+### Hinzugefügt
+- **wait_for_ollama()**: Wartet bis zu 2.5 Minuten auf Ollama-API-Bereitschaft
+- **download_ollama_model()**: Separierte Funktion für Modell-Download mit besserer Fehlerbehandlung
+- **API-Healthcheck**: Prüft `http://localhost:11434/api/tags` vor Modell-Download
+- **Container-Log-Ausgabe**: Zeigt Container-Logs bei Startup-Problemen
+- **Manuelle Recovery-Anweisungen**: Gibt Befehle aus für manuellen Modell-Download
+
+### Technisch
+- Neue Funktion `wait_for_ollama()` mit 30 Versuchen à 5 Sekunden
+- Neue Funktion `download_ollama_model()` mit Fortschrittsanzeige
+- Ersetzt `sleep 30` durch robuste API-Prüfung
+- Verbesserte Fehlerausgabe bei Ollama-Problemen
+
 ## [12.1.1] - 2025-11-25
 
 ### Hinzugefügt

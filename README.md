@@ -2,7 +2,7 @@
 
 Vollautomatisches Installations-Script für eine komplette Dokumentenverwaltungs-Lösung mit lokaler KI-Integration.
 
-**Version 12.1** - Multi-Platform (Ubuntu/Unraid)
+**Version 12.1.2** - Multi-Platform (Ubuntu/Unraid)
 
 ## 🎯 Features
 

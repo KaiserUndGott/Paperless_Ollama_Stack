@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Paperless-NGX + Ollama AI Stack Installation Script
-# Version 12.1 - Multi-Platform (Ubuntu/Unraid) (FBW) Stand: 25.11.2025
+# Version 12.1.2 - Multi-Platform (Ubuntu/Unraid) (FBW) Stand: 25.11.2025
 # Vollautomatische Docker-Installation mit Ollama, Gemma2:9B, Whisper und RAG-Chat
 
 set -e
@@ -984,8 +984,85 @@ EOF
 # Fortsetzung folgt in Teil 2...
 
 # =============================================================================
-# DOCKER STACK DEPLOYMENT  
+# DOCKER STACK DEPLOYMENT
 # =============================================================================
+
+wait_for_ollama() {
+    log_info "Warte auf Ollama-Bereitschaft..."
+
+    local max_attempts=30
+    local attempt=1
+
+    while [[ $attempt -le $max_attempts ]]; do
+        log_info "Prüfe Ollama-Status (Versuch $attempt/$max_attempts)..."
+
+        # Prüfe ob Container läuft
+        if ! docker ps --filter "name=paperless-ollama" --format "{{.Status}}" | grep -q "Up"; then
+            log_warning "Ollama Container läuft nicht - prüfe Logs..."
+            docker logs paperless-ollama --tail 20
+
+            if [[ $attempt -eq $max_attempts ]]; then
+                log_error "Ollama Container konnte nicht gestartet werden!"
+                echo
+                echo -e "${YELLOW}Mögliche Ursachen:${NC}"
+                echo -e "1. Nicht genug RAM (Ollama benötigt mindestens 4GB)"
+                echo -e "2. Port $OLLAMA_PORT ist bereits belegt"
+                echo -e "3. Volume-Berechtigungsprobleme"
+                echo
+                echo -e "${YELLOW}Troubleshooting:${NC}"
+                echo -e "docker logs paperless-ollama"
+                echo -e "docker inspect paperless-ollama"
+                return 1
+            fi
+        else
+            # Container läuft, prüfe API
+            if curl -s -f "http://localhost:$OLLAMA_PORT/api/tags" >/dev/null 2>&1; then
+                log_success "✓ Ollama ist bereit und antwortet"
+                return 0
+            fi
+        fi
+
+        sleep 5
+        ((attempt++))
+    done
+
+    log_error "Ollama ist nach $max_attempts Versuchen nicht bereit!"
+    return 1
+}
+
+download_ollama_model() {
+    log_info "Lade Gemma2:9B Modell herunter (ca. 5GB, kann mehrere Minuten dauern)..."
+    log_info "Dies ist ein einmaliger Download beim ersten Start."
+    echo
+
+    # Zeige Download-Fortschritt
+    if sudo -u "$DOCKER_USER" docker exec paperless-ollama ollama pull gemma2:9b 2>&1 | while IFS= read -r line; do
+        echo "  $line"
+    done; then
+        log_success "✓ Gemma2:9B Modell erfolgreich geladen"
+
+        # Verifiziere dass Modell verfügbar ist
+        if sudo -u "$DOCKER_USER" docker exec paperless-ollama ollama list | grep -q "gemma2:9b"; then
+            log_success "✓ Modell verifiziert und einsatzbereit"
+        else
+            log_warning "⚠ Modell geladen, aber nicht in Liste gefunden"
+        fi
+        return 0
+    else
+        log_error "❌ Gemma2:9B Download fehlgeschlagen!"
+        echo
+        echo -e "${YELLOW}Mögliche Ursachen:${NC}"
+        echo -e "1. Nicht genug Festplattenspeicher (benötigt ~5GB)"
+        echo -e "2. Netzwerkprobleme während des Downloads"
+        echo -e "3. Ollama Container ist nicht stabil"
+        echo
+        echo -e "${YELLOW}Lösung:${NC}"
+        echo -e "Das Modell kann später manuell geladen werden:"
+        echo -e "${CYAN}docker exec paperless-ollama ollama pull gemma2:9b${NC}"
+        echo
+        return 1
+    fi
+}
 
 start_stack() {
     show_section "DOCKER STACK DEPLOYMENT"
@@ -999,13 +1076,11 @@ start_stack() {
 
     log_info "Starte Ollama Container..."
     sudo -u "$DOCKER_USER" docker compose up -d ollama
-    sleep 30
 
-    log_info "Lade Gemma2:9B Modell herunter (ca. 5GB, kann einige Minuten dauern)..."
-    if ! sudo -u "$DOCKER_USER" docker exec paperless-ollama ollama pull gemma2:9b; then
-        log_warning "Gemma2:9B Download fehlgeschlagen - wird beim ersten Start nachgeholt"
+    if ! wait_for_ollama; then
+        log_error "Ollama konnte nicht gestartet werden - fahre ohne Modell fort"
     else
-        log_success "✓ Gemma2:9B Modell erfolgreich geladen"
+        download_ollama_model || log_warning "Modell-Download übersprungen - kann später nachgeholt werden"
     fi
 
     log_info "Starte Paperless-NGX Container..."
