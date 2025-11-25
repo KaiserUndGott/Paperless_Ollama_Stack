@@ -1,5 +1,24 @@
 # Paperless-NGX + Ollama AI Stack
 
+![Development Stage](https://img.shields.io/badge/Development-Alpha-orange?style=for-the-badge)
+![Version](https://img.shields.io/badge/Version-12.2.1-blue?style=for-the-badge)
+![Platform](https://img.shields.io/badge/Platform-Ubuntu%20%7C%20Unraid-green?style=for-the-badge)
+![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)
+
+> [!WARNING]
+> **⚠️ ALPHA VERSION - DEVELOPMENT STAGE**
+>
+> Dieses Projekt befindet sich im **frühen Entwicklungsstadium (Alpha)**.
+>
+> - ⚠️ **Nicht für Produktionsumgebungen empfohlen**
+> - ⚠️ **Breaking Changes** können jederzeit auftreten
+> - ⚠️ **Datenverlust möglich** - Regelmäßige Backups erforderlich
+> - ⚠️ **Bugs und Instabilitäten** sind zu erwarten
+> - ✅ **Ideal für Tests und Entwicklung**
+> - ✅ **Feedback und Bug-Reports willkommen**
+>
+> **Verwenden Sie diese Software auf eigene Gefahr!**
+
 Vollautomatisches Installations-Script für eine komplette Dokumentenverwaltungs-Lösung mit lokaler KI-Integration.
 
 **Version 12.2.1** - Multi-Platform mit Re-Installation Support
@@ -393,7 +412,78 @@ Alle Container sind im Docker-Netzwerk `paperless-net` verbunden und können üb
 
 **Gesamt**: ~8-10 GB RAM, 4-6 CPU-Cores, ~20 GB Festplatte
 
+## 🚧 Known Issues & Roadmap
+
+### ⚠️ Bekannte Probleme (Alpha-Phase)
+
+**Kritisch:**
+- ⚠️ Installation kann bei langsamen Systemen/Netzwerken timeout
+- ⚠️ Ollama-Model-Download benötigt stabile Internetverbindung
+- ⚠️ Re-Installation Option 3 (Komplett-Neuinstallation) kann in Ausnahmefällen Daten löschen
+
+**Häufig:**
+- Container brauchen beim ersten Start 2-5 Minuten für Initialisierung
+- Paperless-AI Setup-Wizard muss manuell beim ersten Besuch durchgeführt werden
+- API Token Erstellung kann bei überlasteten Systemen fehlschlagen
+
+**Minor:**
+- Port-Konflikte werden nicht immer korrekt erkannt
+- Firewall-Regeln müssen bei manchen Distributionen manuell angepasst werden
+- Docker Compose v1 (docker-compose) wird nicht unterstützt - nur v2 (docker compose)
+
+### 🗺️ Roadmap
+
+**v12.3.0 - Beta Phase (Q1 2025)**
+- [ ] Automatisches Backup-System
+- [ ] Health-Monitoring mit Benachrichtigungen
+- [ ] Web-UI für Installation und Management
+- [ ] Erweiterte Logging und Diagnostics
+- [ ] Update-Mechanismus für neue Versionen
+
+**v13.0.0 - Stable Release (Q2 2025)**
+- [ ] Produktions-Ready Status
+- [ ] Vollständige Test-Coverage
+- [ ] Performance-Optimierungen
+- [ ] Multi-Language Support für Installation
+- [ ] Docker-Registry für Custom Images
+- [ ] Kubernetes Support
+
+**Feature Requests:**
+- [ ] S3-Integration für Backup
+- [ ] LDAP/Active Directory Integration
+- [ ] Multi-Tenant Support
+- [ ] API für externe Integrationen
+- [ ] Mobile App für Dokumenten-Upload
+
+### 📊 Entwicklungsstatus
+
+| Komponente | Status | Stabilität | Hinweise |
+|------------|--------|------------|----------|
+| Installation | Alpha | 70% | Grundfunktionen vorhanden |
+| Re-Installation | Alpha | 60% | Mehrere Szenarien abgedeckt |
+| Ollama Integration | Alpha | 65% | Model-Download kann instabil sein |
+| Port-Management | Alpha | 75% | Automatische Erkennung funktioniert meist |
+| Dokumentation | Beta | 85% | Umfassend aber noch Lücken |
+
+### 🐛 Bug Reports
+
+Bitte erstellen Sie Issues auf GitHub mit folgenden Informationen:
+- Betriebssystem und Version
+- Docker/Docker Compose Version
+- Vollständige Logs (`/var/log/paperless-install.log`)
+- Schritt-für-Schritt Reproduktion
+- Erwartetes vs. tatsächliches Verhalten
+
 ## 🤝 Beiträge
+
+**Das Projekt sucht aktiv nach Beiträgen!**
+
+Besonders willkommen sind:
+- 🐛 Bug-Fixes und Patches
+- 📝 Dokumentations-Verbesserungen
+- 🧪 Tests auf verschiedenen Plattformen
+- 💡 Feature-Vorschläge
+- 🌍 Übersetzungen
 
 Beiträge, Issues und Feature-Requests sind willkommen!
 

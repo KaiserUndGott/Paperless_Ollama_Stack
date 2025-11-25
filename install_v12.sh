@@ -1,8 +1,26 @@
 #!/bin/bash
 
+# =============================================================================
 # Paperless-NGX + Ollama AI Stack Installation Script
-# Version 12.2.1 - Multi-Platform mit Re-Installation (FBW) Stand: 25.11.2025
-# Vollautomatische Docker-Installation mit Ollama, Gemma2:9B, Whisper und RAG-Chat
+# =============================================================================
+# Version:     12.2.1 (ALPHA)
+# Status:      Development Stage - Alpha
+# Plattform:   Ubuntu/Debian & Unraid
+# Autor:       FBW
+# Datum:       25.11.2025
+# =============================================================================
+#
+# ⚠️  WARNUNG: ALPHA VERSION - DEVELOPMENT STAGE
+#
+# Diese Software befindet sich im frühen Entwicklungsstadium:
+# - Nicht für Produktionsumgebungen empfohlen
+# - Breaking Changes können jederzeit auftreten
+# - Bugs und Instabilitäten sind zu erwarten
+# - Datenverlust möglich - Regelmäßige Backups erforderlich
+#
+# VERWENDEN SIE DIESE SOFTWARE AUF EIGENE GEFAHR!
+#
+# =============================================================================
 
 set -e
 
@@ -467,10 +485,14 @@ show_header() {
     echo "║    ██║     ██║  ██║██║     ███████╗██║  ██║███████╗███████╗███████║███████║    ║"
     echo "║    ╚═╝     ╚═╝  ╚═╝╚═╝     ╚══════╝╚═╝  ╚═╝╚══════╝╚══════╝╚══════╝╚══════╝    ║"
     echo "║                                                                                ║"
-    echo "║                  + OLLAMA AI STACK - Version 12.1 (Multi-Platform)            ║"
+    echo "║              + OLLAMA AI STACK - Version 12.2.1 (Multi-Platform)              ║"
     echo "║                                                                                ║"
     echo "╚════════════════════════════════════════════════════════════════════════════════╝"
     echo -e "${NC}"
+    echo
+    echo -e "${RED}${BOLD}⚠️  ALPHA VERSION - DEVELOPMENT STAGE ⚠️${NC}"
+    echo -e "${YELLOW}Diese Software befindet sich im frühen Entwicklungsstadium!${NC}"
+    echo -e "${YELLOW}Nicht für Produktionsumgebungen empfohlen. Bugs sind zu erwarten.${NC}"
     echo
     echo -e "${GREEN}🎯 ${BOLD}Diese Installation beinhaltet:${NC}"
     echo -e "   • Paperless-NGX (Dokumentenverwaltung)"

@@ -5,7 +5,12 @@ Alle bemerkenswerten Änderungen an diesem Projekt werden in dieser Datei dokume
 Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/),
 und dieses Projekt hält sich an [Semantic Versioning](https://semver.org/lang/de/).
 
-## [12.2.1] - 2025-11-25
+> [!WARNING]
+> **ALPHA VERSION - DEVELOPMENT STAGE**
+>
+> Alle Versionen bis v13.0.0 befinden sich im Alpha-Stadium. Nicht für Produktionsumgebungen empfohlen.
+
+## [12.2.1] - 2025-11-25 [ALPHA]
 
 ### Behoben
 - **API Token Erstellung**: Paperless-NGX erhält jetzt 30 Sekunden zusätzliche Initialisierungszeit vor Token-Erstellung
@@ -29,7 +34,7 @@ und dieses Projekt hält sich an [Semantic Versioning](https://semver.org/lang/d
 - Ollama-Model-Download nach Paperless-AI Start verschoben
 - Nicht-blockierendes Ollama-Handling mit Warnungen statt Fehlern
 
-## [12.2.0] - 2025-11-25
+## [12.2.0] - 2025-11-25 [ALPHA]
 
 ### Hinzugefügt
 - **Re-Installation Support**: Automatische Erkennung bestehender Installationen
@@ -68,7 +73,7 @@ und dieses Projekt hält sich an [Semantic Versioning](https://semver.org/lang/d
 - **Neuanfang**: Script starten → Option 3 → Alles neu außer Ollama-Modelle
 - **Troubleshooting**: Script starten → Option 4 → Schneller Neustart
 
-## [12.1.2] - 2025-11-25
+## [12.1.2] - 2025-11-25 [ALPHA]
 
 ### Behoben
 - **Ollama Container Startup**: Robuste Warteschleife mit API-Prüfung vor Modell-Download
@@ -90,7 +95,7 @@ und dieses Projekt hält sich an [Semantic Versioning](https://semver.org/lang/d
 - Ersetzt `sleep 30` durch robuste API-Prüfung
 - Verbesserte Fehlerausgabe bei Ollama-Problemen
 
-## [12.1.1] - 2025-11-25
+## [12.1.1] - 2025-11-25 [ALPHA]
 
 ### Hinzugefügt
 - **Installations-Verifizierung**: Umfassende Container-Status-Prüfung nach Installation
@@ -109,7 +114,7 @@ und dieses Projekt hält sich an [Semantic Versioning](https://semver.org/lang/d
 - Farbcodierung: Grün (OK), Gelb (Warning), Rot (Error), Cyan (No Check)
 - Automatische Container-Name-Normalisierung
 
-## [12.1.0] - 2025-11-25
+## [12.1.0] - 2025-11-25 [ALPHA]
 
 ### Hinzugefügt
 - **Multi-Platform-Unterstützung**: Automatische Erkennung und Unterstützung für Ubuntu und Unraid
@@ -141,7 +146,7 @@ und dieses Projekt hält sich an [Semantic Versioning](https://semver.org/lang/d
 - Verbesserte Logging-Ausgaben
 - Plattform-abhängige Konfigurationspfade
 
-## [12.0.0] - 2025-11-25
+## [12.0.0] - 2025-11-25 [ALPHA]
 
 ### Hinzugefügt
 - **Initiales Release**: Paperless-NGX + Ollama AI Stack
