@@ -5,6 +5,25 @@ Alle bemerkenswerten Änderungen an diesem Projekt werden in dieser Datei dokume
 Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/),
 und dieses Projekt hält sich an [Semantic Versioning](https://semver.org/lang/de/).
 
+## [12.1.1] - 2025-11-25
+
+### Hinzugefügt
+- **Installations-Verifizierung**: Umfassende Container-Status-Prüfung nach Installation
+- **Health-Check-Monitoring**: Automatische Überprüfung aller Container Health-Checks
+- **Farbcodierte Status-Tabelle**: Übersichtliche Anzeige von Container-Status, Health und Uptime
+- **Automatische Wiederholungsprüfung**: Zweite Prüfung bei "starting" Health-Status
+- **Troubleshooting-Hinweise**: Automatische Hilfe bei Problemen
+
+### Geändert
+- **Verbesserte Abschluss-Ausgabe**: Status-Verifizierung vor Erfolgs-Meldung
+- **Erweiterte Fehlerbehandlung**: Detaillierte Fehlerausgabe bei Container-Problemen
+
+### Technisch
+- Neue Funktion `verify_installation()` mit 140+ Zeilen
+- Docker-Inspect-Abfragen für Status, Health und Uptime
+- Farbcodierung: Grün (OK), Gelb (Warning), Rot (Error), Cyan (No Check)
+- Automatische Container-Name-Normalisierung
+
 ## [12.1.0] - 2025-11-25
 
 ### Hinzugefügt

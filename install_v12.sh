@@ -1253,6 +1253,148 @@ configure_firewall() {
 }
 
 # =============================================================================
+# =============================================================================
+# INSTALLATION VERIFICATION
+# =============================================================================
+
+verify_installation() {
+    show_section "INSTALLATIONS-VERIFIZIERUNG"
+    
+    log_info "Prüfe Container-Status..."
+    cd "$STACK_DIR"
+    
+    # Container-Informationen sammeln
+    local all_running=true
+    local all_healthy=true
+    local container_details=""
+    
+    # Erwartete Container
+    local expected_containers=("postgres" "redis" "ollama" "paperless-ngx" "paperless-ai")
+    
+    echo -e "${BOLD}Container-Status:${NC}"
+    echo -e "${BLUE}┌─────────────────────┬──────────────┬──────────────┬────────────────┐${NC}"
+    echo -e "${BLUE}│ Container           │ Status       │ Health       │ Uptime         │${NC}"
+    echo -e "${BLUE}├─────────────────────┼──────────────┼──────────────┼────────────────┤${NC}"
+    
+    for container_name in "${expected_containers[@]}"; do
+        local full_name="paperless-${container_name}"
+        if [[ "$container_name" == "paperless-ngx" ]] || [[ "$container_name" == "paperless-ai" ]]; then
+            full_name="$container_name"
+        fi
+        
+        # Container-Status abrufen
+        local status=$(docker inspect --format='{{.State.Status}}' "$full_name" 2>/dev/null || echo "not found")
+        local health=$(docker inspect --format='{{.State.Health.Status}}' "$full_name" 2>/dev/null || echo "none")
+        local uptime=$(docker inspect --format='{{.State.StartedAt}}' "$full_name" 2>/dev/null | xargs -I {} date -d {} +%s 2>/dev/null || echo "0")
+        
+        # Uptime berechnen
+        local uptime_str="N/A"
+        if [[ "$uptime" != "0" ]]; then
+            local current_time=$(date +%s)
+            local diff=$((current_time - uptime))
+            local minutes=$((diff / 60))
+            local hours=$((minutes / 60))
+            local days=$((hours / 24))
+            
+            if [[ $days -gt 0 ]]; then
+                uptime_str="${days}d ${hours % 24}h"
+            elif [[ $hours -gt 0 ]]; then
+                uptime_str="${hours}h ${minutes % 60}m"
+            else
+                uptime_str="${minutes}m"
+            fi
+        fi
+        
+        # Health-Status anpassen (wenn keine Healthcheck vorhanden)
+        if [[ "$health" == "none" ]] && [[ "$status" == "running" ]]; then
+            health="no check"
+        fi
+        
+        # Farbcodierung
+        local status_color="$GREEN"
+        local health_color="$GREEN"
+        local status_symbol="✓"
+        
+        if [[ "$status" != "running" ]]; then
+            status_color="$RED"
+            status_symbol="✗"
+            all_running=false
+        fi
+        
+        case "$health" in
+            "healthy")
+                health_color="$GREEN"
+                ;;
+            "unhealthy")
+                health_color="$RED"
+                all_healthy=false
+                ;;
+            "starting")
+                health_color="$YELLOW"
+                ;;
+            "no check"|"none")
+                health_color="$CYAN"
+                ;;
+            *)
+                health_color="$YELLOW"
+                ;;
+        esac
+        
+        # Formatierte Ausgabe
+        printf "${BLUE}│${NC} %-19s ${BLUE}│${NC} ${status_color}%-12s${NC} ${BLUE}│${NC} ${health_color}%-12s${NC} ${BLUE}│${NC} %-14s ${BLUE}│${NC}\n" \
+            "${status_symbol} ${container_name}" "$status" "$health" "$uptime_str"
+    done
+    
+    echo -e "${BLUE}└─────────────────────┴──────────────┴──────────────┴────────────────┘${NC}"
+    echo
+    
+    # Zusammenfassung
+    if [[ "$all_running" == true ]] && [[ "$all_healthy" == true ]]; then
+        log_success "✅ Alle Container sind erfolgreich gestartet und gesund!"
+        return 0
+    elif [[ "$all_running" == true ]]; then
+        log_warning "⚠️  Alle Container laufen, aber einige Health-Checks sind noch nicht grün"
+        log_info "Dies ist normal direkt nach dem Start. Container werden initialisiert..."
+        sleep 5
+        
+        # Erneute Prüfung nach Wartezeit
+        log_info "Führe erneute Prüfung durch..."
+        local still_unhealthy=false
+        for container_name in "${expected_containers[@]}"; do
+            local full_name="paperless-${container_name}"
+            if [[ "$container_name" == "paperless-ngx" ]] || [[ "$container_name" == "paperless-ai" ]]; then
+                full_name="$container_name"
+            fi
+            
+            local health=$(docker inspect --format='{{.State.Health.Status}}' "$full_name" 2>/dev/null || echo "none")
+            if [[ "$health" == "unhealthy" ]] || [[ "$health" == "starting" ]]; then
+                still_unhealthy=true
+            fi
+        done
+        
+        if [[ "$still_unhealthy" == false ]]; then
+            log_success "✅ Alle Health-Checks sind jetzt grün!"
+        else
+            log_warning "⚠️  Einige Container benötigen noch mehr Zeit zum Starten"
+        fi
+        return 0
+    else
+        log_error "❌ Einige Container sind nicht gestartet!"
+        echo
+        echo -e "${BOLD}${YELLOW}Troubleshooting:${NC}"
+        echo -e "1. Container-Logs prüfen:"
+        echo -e "   ${CYAN}cd $STACK_DIR && docker compose logs${NC}"
+        echo
+        echo -e "2. Einzelne Container neu starten:"
+        echo -e "   ${CYAN}cd $STACK_DIR && docker compose restart <container-name>${NC}"
+        echo
+        echo -e "3. Kompletten Stack neu starten:"
+        echo -e "   ${CYAN}cd $STACK_DIR && docker compose down && docker compose up -d${NC}"
+        echo
+        return 1
+    fi
+}
+
 # COMPLETION
 # =============================================================================
 
@@ -1312,6 +1454,8 @@ main() {
     start_stack
     create_credentials_file
     configure_firewall
+
+    verify_installation
 
     show_completion
 }

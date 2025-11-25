@@ -94,9 +94,40 @@ sudo ./install_v12.sh
 - **Unraid**: `/mnt/user/dokumente/paperless` (Standard)
 - **Ubuntu**: `/var/lib/paperless` oder `/mnt/user/dokumente/paperless` (wählbar)
 
-### 4. Installation überwachen
+### 3. Installation überwachen
 
 Die Installation dauert ca. 15-20 Minuten, abhängig von Ihrer Internetverbindung (ca. 5-6GB Download für Ollama + Gemma2:9B).
+
+### 4. Erfolgsverifizierung
+
+Das Script prüft automatisch nach der Installation den Status aller Container:
+
+```
+═══════════════════════════════════════════════════════════════════════════════
+  INSTALLATIONS-VERIFIZIERUNG
+═══════════════════════════════════════════════════════════════════════════════
+
+Container-Status:
+┌─────────────────────┬──────────────┬──────────────┬────────────────┐
+│ Container           │ Status       │ Health       │ Uptime         │
+├─────────────────────┼──────────────┼──────────────┼────────────────┤
+│ ✓ postgres          │ running      │ healthy      │ 2m             │
+│ ✓ redis             │ running      │ healthy      │ 2m             │
+│ ✓ ollama            │ running      │ healthy      │ 1m             │
+│ ✓ paperless-ngx     │ running      │ healthy      │ 1m             │
+│ ✓ paperless-ai      │ running      │ no check     │ 0m             │
+└─────────────────────┴──────────────┴──────────────┴────────────────┘
+
+✅ Alle Container sind erfolgreich gestartet und gesund!
+```
+
+**Status-Symbole:**
+- ✓ Grün = Container läuft und ist gesund
+- ✗ Rot = Container läuft nicht oder ist ungesund
+- Gelb = Container startet gerade
+- Cyan = Kein Health-Check konfiguriert
+
+Bei Problemen zeigt das Script automatisch Troubleshooting-Hinweise an.
 
 ## 🔧 Konfiguration
 
