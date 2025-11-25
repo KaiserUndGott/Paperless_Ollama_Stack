@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Paperless-NGX + Ollama AI Stack Installation Script
-# Version 12.2.0 - Multi-Platform mit Re-Installation (FBW) Stand: 25.11.2025
+# Version 12.2.1 - Multi-Platform mit Re-Installation (FBW) Stand: 25.11.2025
 # Vollautomatische Docker-Installation mit Ollama, Gemma2:9B, Whisper und RAG-Chat
 
 set -e
@@ -1312,11 +1312,49 @@ start_stack() {
     sudo -u "$DOCKER_USER" docker compose up -d postgres redis
     sleep 20
 
-    log_info "Starte Ollama Container..."
-    sudo -u "$DOCKER_USER" docker compose up -d ollama
+    log_info "Starte Paperless-NGX und Ollama Container parallel..."
+    sudo -u "$DOCKER_USER" docker compose up -d paperless-ngx ollama
 
+    local max_attempts=30
+    local attempt=1
+
+    while [[ $attempt -le $max_attempts ]]; do
+        log_info "Warte auf Paperless-NGX Bereitschaft (Versuch $attempt/$max_attempts)..."
+
+        if curl -s -f "http://$HOST_IP:$PAPERLESS_PORT/accounts/login/" >/dev/null 2>&1; then
+            log_success "Paperless-NGX ist bereit"
+            break
+        fi
+
+        if [[ $attempt -eq $max_attempts ]]; then
+            log_error "Paperless-NGX ist nach $max_attempts Versuchen nicht bereit!"
+            return 1
+        fi
+
+        sleep 10
+        ((attempt++))
+    done
+
+    # Zusätzliche Wartezeit für vollständige Initialisierung
+    log_info "Warte auf vollständige Paperless-NGX Initialisierung..."
+    sleep 30
+
+    create_paperless_api_token
+
+    log_info "Starte Paperless-AI Container..."
+    sudo -u "$DOCKER_USER" docker compose up -d paperless-ai
+    sleep 10
+
+    if ! setup_paperless_defaults; then
+        log_warning "Standard-Setup fehlgeschlagen - Installation wird trotzdem fortgesetzt"
+    fi
+
+    update_paperless_ai_tag_config
+
+    # Ollama-Model-Handling nach Paperless-AI Start (parallel)
+    log_info "Prüfe Ollama Container und Modelle..."
     if ! wait_for_ollama; then
-        log_error "Ollama konnte nicht gestartet werden - fahre ohne Modell fort"
+        log_warning "Ollama konnte nicht gestartet werden - Modell kann später manuell geladen werden"
     else
         # Prüfe ob Ollama-Modelle wiederhergestellt werden müssen
         if [[ "$RESTORE_OLLAMA_MODELS" == "true" ]]; then
@@ -1340,41 +1378,6 @@ start_stack() {
             download_ollama_model || log_warning "Modell-Download übersprungen - kann später nachgeholt werden"
         fi
     fi
-
-    log_info "Starte Paperless-NGX Container..."
-    sudo -u "$DOCKER_USER" docker compose up -d paperless-ngx
-
-    local max_attempts=30
-    local attempt=1
-
-    while [[ $attempt -le $max_attempts ]]; do
-        log_info "Warte auf Paperless-NGX Bereitschaft (Versuch $attempt/$max_attempts)..."
-
-        if curl -s -f "http://$HOST_IP:$PAPERLESS_PORT/accounts/login/" >/dev/null 2>&1; then
-            log_success "Paperless-NGX ist bereit"
-            break
-        fi
-
-        if [[ $attempt -eq $max_attempts ]]; then
-            log_error "Paperless-NGX ist nach $max_attempts Versuchen nicht bereit!"
-            return 1
-        fi
-
-        sleep 10
-        ((attempt++))
-    done
-
-    create_paperless_api_token
-
-    log_info "Starte Paperless-AI Container..."
-    sudo -u "$DOCKER_USER" docker compose up -d paperless-ai
-    sleep 30
-
-    if ! setup_paperless_defaults; then
-        log_warning "Standard-Setup fehlgeschlagen - Installation wird trotzdem fortgesetzt"
-    fi
-
-    update_paperless_ai_tag_config
 
     local container_count=$(sudo -u "$DOCKER_USER" docker compose ps --format "table {{.Service}}" | tail -n +2 | wc -l)
     log_success "✅ $container_count Container erfolgreich gestartet"

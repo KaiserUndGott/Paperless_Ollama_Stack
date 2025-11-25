@@ -2,7 +2,7 @@
 
 Vollautomatisches Installations-Script für eine komplette Dokumentenverwaltungs-Lösung mit lokaler KI-Integration.
 
-**Version 12.2.0** - Multi-Platform mit Re-Installation Support
+**Version 12.2.1** - Multi-Platform mit Re-Installation Support
 
 ## 🎯 Features
 
@@ -185,13 +185,28 @@ Falls die Wiederherstellung fehlschlägt, lädt das Script das Modell automatisc
 
 ### Port-Konfiguration
 
-Das Script sucht automatisch nach freien Ports. Standard-Ports:
+Das Script sucht automatisch nach freien Ports und wählt ggf. den nächsten verfügbaren Port.
 
-- **Paperless-NGX**: 8000
-- **Paperless-AI**: 3000
-- **Ollama API**: 11434
-- **PostgreSQL**: 5432
-- **Redis**: 6379
+#### Web-Services (extern zugänglich)
+
+| Service | Standard-Port | Beschreibung | URL |
+|---------|---------------|--------------|-----|
+| **Paperless-NGX** | 8000 | Hauptanwendung | `http://[SERVER-IP]:8000` |
+| **Paperless-AI** | 3000 | KI-Integration & RAG-Chat | `http://[SERVER-IP]:3000` |
+| **Ollama API** | 11434 | Lokale KI-Engine | `http://[SERVER-IP]:11434` |
+
+#### Datenbank-Services (intern)
+
+| Service | Standard-Port | Beschreibung | Zugriff |
+|---------|---------------|--------------|---------|
+| **PostgreSQL** | 5432 | Datenbank | Intern + Host |
+| **Redis** | 6379 | Cache | Intern + Host |
+
+**Hinweise:**
+- Firewall-Regeln werden automatisch erstellt (UFW/Firewalld)
+- PostgreSQL und Redis sind nur lokal/intern erreichbar
+- Bei Port-Konflikten wählt das Script automatisch den nächsten freien Port
+- Konfiguration in `/opt/paperless-stack/.env`
 
 ### Volumes
 

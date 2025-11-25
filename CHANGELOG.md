@@ -5,6 +5,30 @@ Alle bemerkenswerten Änderungen an diesem Projekt werden in dieser Datei dokume
 Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/),
 und dieses Projekt hält sich an [Semantic Versioning](https://semver.org/lang/de/).
 
+## [12.2.1] - 2025-11-25
+
+### Behoben
+- **API Token Erstellung**: Paperless-NGX erhält jetzt 30 Sekunden zusätzliche Initialisierungszeit vor Token-Erstellung
+- **Ollama Container Start**: Container startet jetzt parallel zu Paperless-NGX (nicht vorher)
+- **Start-Reihenfolge optimiert**: Ollama-Model-Download erfolgt nach Paperless-AI Start (nicht-blockierend)
+- **Container-Bereitschaft**: Paperless-NGX Web-Interface wird geprüft + 30s Wartezeit für vollständige DB-Initialisierung
+
+### Geändert
+- **start_stack()**: Neue Reihenfolge - PostgreSQL/Redis → Paperless-NGX/Ollama parallel → 30s Wartezeit → API Token → Paperless-AI → Ollama-Modelle
+- **Ollama-Handling**: Nicht mehr blockierend für Paperless-NGX Start
+- **Wartezeit reduziert**: Paperless-AI Start von 30s auf 10s (Ollama läuft parallel)
+
+### Dokumentation
+- **Port-Übersicht**: Detaillierte Tabellen mit Web-Services und Datenbank-Ports
+- **README erweitert**: Port-Konfiguration mit Firewall-Hinweisen
+- **Troubleshooting**: Erweiterte Hinweise für Port-Konflikte
+
+### Technisch
+- Paralleler Start: `docker compose up -d paperless-ngx ollama`
+- Zusätzliche Wartezeit vor Token-Erstellung: +30 Sekunden
+- Ollama-Model-Download nach Paperless-AI Start verschoben
+- Nicht-blockierendes Ollama-Handling mit Warnungen statt Fehlern
+
 ## [12.2.0] - 2025-11-25
 
 ### Hinzugefügt
