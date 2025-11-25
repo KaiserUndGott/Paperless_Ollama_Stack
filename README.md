@@ -2,6 +2,8 @@
 
 Vollautomatisches Installations-Script für eine komplette Dokumentenverwaltungs-Lösung mit lokaler KI-Integration.
 
+**Version 12.1** - Multi-Platform (Ubuntu/Unraid)
+
 ## 🎯 Features
 
 - **Paperless-NGX** - Moderne Dokumentenverwaltung mit OCR
@@ -11,27 +13,32 @@ Vollautomatisches Installations-Script für eine komplette Dokumentenverwaltungs
 - **RAG-Chat** - Interaktive Dokumenten-Chats mit KI
 - **OpenAI Whisper** - Integrierte Spracherkennung für Audio-Dateien
 - **PostgreSQL + Redis** - Robuste Datenbank-Backend
+- **🆕 Multi-Platform** - Unterstützung für Ubuntu und Unraid
+- **🆕 Automatische Docker-Installation** - Vollständiges Docker-Setup für Ubuntu
+- **🆕 Plattform-Erkennung** - Automatische Erkennung der Zielplattform
+- **🆕 Flexible Pfadwahl** - Anpassbare Datenverzeichnisse je nach Umgebung
 
 ## 📋 Voraussetzungen
 
-- **Betriebssystem**: Ubuntu 20.04+ / Debian 11+ / CentOS 8+ / Rocky Linux 8+
+### Allgemein
 - **RAM**: Mindestens 8GB (16GB empfohlen für Ollama)
 - **Festplatte**: Mindestens 20GB freier Speicher
 - **CPU**: x64 Prozessor mit mindestens 4 Kernen
 - **Root-Zugriff**: Das Script muss als root/sudo ausgeführt werden
-- **Datenverzeichnis**: `/mnt/user/dokumente/paperless` muss existieren
+
+### Ubuntu/Debian
+- **Betriebssystem**: Ubuntu 20.04+ / Debian 11+ / CentOS 8+ / Rocky Linux 8+
+- **Docker**: Wird automatisch installiert, wenn nicht vorhanden
+- **Internet**: Für Package-Download und Docker-Installation
+
+### Unraid
+- **Unraid Version**: 6.9+
+- **Docker**: Muss in Unraid-Einstellungen aktiviert sein
+- **Community Applications Plugin**: Empfohlen (aber nicht erforderlich)
 
 ## 🚀 Installation
 
-### 1. Datenverzeichnis vorbereiten
-
-```bash
-# Datenverzeichnis erstellen (falls nicht vorhanden)
-sudo mkdir -p /mnt/user/dokumente/paperless
-sudo chown -R $USER:$USER /mnt/user/dokumente/paperless
-```
-
-### 2. Script herunterladen
+### 1. Script herunterladen
 
 ```bash
 # Script herunterladen
@@ -41,16 +48,51 @@ wget https://raw.githubusercontent.com/KaiserUndGott/Paperless_Ollama_Stack/main
 chmod +x install_v12.sh
 ```
 
-### 3. Installation starten
+### 2. Installation starten
 
 ```bash
 sudo ./install_v12.sh
 ```
 
-Das Script wird Sie durch die Installation führen und folgende Informationen abfragen:
+Das Script führt Sie interaktiv durch die Installation:
 
-- **Admin-Benutzername** (min. 3 Zeichen)
-- **Admin-Passwort** (min. 12 Zeichen mit Groß-/Kleinbuchstaben, Zahlen und Sonderzeichen)
+1. **Plattform-Auswahl**: Ubuntu/Debian oder Unraid
+2. **Datenverzeichnis**: Auswahl oder Erstellung des Speicherorts
+3. **Credentials**: Admin-Benutzername und sicheres Passwort
+4. **Docker-Installation**: Automatisch auf Ubuntu (falls nötig)
+5. **Stack-Deployment**: Alle Container werden gestartet
+6. **Ollama-Model**: Gemma2:9B wird automatisch geladen
+
+### Installation auf Ubuntu (Testing)
+
+Ideal für Tests auf einem "nackten" Ubuntu-Server:
+
+```bash
+# Frisches Ubuntu 22.04/24.04 System
+sudo ./install_v12.sh
+
+# Das Script wird automatisch installieren:
+# - Docker Engine + Docker Compose Plugin
+# - Alle erforderlichen System-Pakete
+# - Den kompletten Paperless-Stack
+```
+
+### Installation auf Unraid (Produktion)
+
+Für den Produktivbetrieb mit Portainer:
+
+```bash
+# Auf Unraid Terminal oder SSH
+sudo ./install_v12.sh
+
+# Wählen Sie "2" für Unraid-Platform
+# Das Script überspringt die Docker-Installation
+# und verwendet die bestehende Unraid-Docker-Umgebung
+```
+
+**Hinweis**: Das Datenverzeichnis wird je nach Plattform vorgeschlagen:
+- **Unraid**: `/mnt/user/dokumente/paperless` (Standard)
+- **Ubuntu**: `/var/lib/paperless` oder `/mnt/user/dokumente/paperless` (wählbar)
 
 ### 4. Installation überwachen
 
