@@ -5,6 +5,45 @@ Alle bemerkenswerten Änderungen an diesem Projekt werden in dieser Datei dokume
 Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/),
 und dieses Projekt hält sich an [Semantic Versioning](https://semver.org/lang/de/).
 
+## [12.2.0] - 2025-11-25
+
+### Hinzugefügt
+- **Re-Installation Support**: Automatische Erkennung bestehender Installationen
+- **Interaktives Update-Menu**: 4 Optionen für verschiedene Szenarien
+  1. Installation abbrechen
+  2. Container neu erstellen (behält alle Daten + Modelle)
+  3. Komplette Neuinstallation (behält nur Ollama-Modelle)
+  4. Container neustarten
+- **Ollama-Modell-Schutz**: Automatisches Backup und Wiederherstellung bei Neuinstallation
+- **Container-Update ohne Datenverlust**: Neue Container mit alter Konfiguration
+- **Intelligente Modell-Prüfung**: Überspringe Download wenn Modell bereits vorhanden
+- **Installation-Status-Anzeige**: Zeigt Container-Status, Verzeichnisgrößen, Modelle
+
+### Geändert
+- **cleanup_existing_installation()**: Komplett überarbeitet mit erweiterten Optionen
+- **start_stack()**: Prüft ob Ollama-Modelle bereits vorhanden oder wiederhergestellt werden müssen
+- **Ollama-Handling**: Drei Modi - Neuinstallation, Update, Wiederherstellung
+
+### Technisch
+- Neue Funktionen:
+  - `check_existing_installation()` - Prüft ob Installation existiert
+  - `show_existing_installation_info()` - Zeigt detaillierte Infos
+  - `handle_existing_installation()` - Interaktives Menu
+  - `recreate_containers()` - Update ohne Datenverlust
+  - `restart_existing_containers()` - Einfacher Neustart
+  - `confirm_full_reinstall()` - Sicherheitsabfrage
+  - `full_reinstall()` - Komplette Neuinstallation mit Backup
+  - `backup_ollama_models()` - Sichert Modelle nach /tmp
+  - `restore_ollama_models()` - Stellt Modelle wieder her
+- Neue Flags: EXISTING_DATA, RESTORE_OLLAMA_MODELS, OLLAMA_BACKUP_DIR
+- Backup-Verzeichnis: `/tmp/ollama_backup_YYYYMMDD_HHMMSS/`
+
+### Use Cases
+- **Container-Update**: Script erneut starten → Option 2 → Neue Container mit allen Daten
+- **Konfig-Änderung**: Script mit neuen Parametern starten → Option 2
+- **Neuanfang**: Script starten → Option 3 → Alles neu außer Ollama-Modelle
+- **Troubleshooting**: Script starten → Option 4 → Schneller Neustart
+
 ## [12.1.2] - 2025-11-25
 
 ### Behoben

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Paperless-NGX + Ollama AI Stack Installation Script
-# Version 12.1.2 - Multi-Platform (Ubuntu/Unraid) (FBW) Stand: 25.11.2025
+# Version 12.2.0 - Multi-Platform mit Re-Installation (FBW) Stand: 25.11.2025
 # Vollautomatische Docker-Installation mit Ollama, Gemma2:9B, Whisper und RAG-Chat
 
 set -e
@@ -35,6 +35,11 @@ INSTALL_SMB="false"
 # Platform detection
 PLATFORM=""  # Will be "ubuntu" or "unraid"
 IS_UNRAID=false
+
+# Re-installation handling
+EXISTING_DATA=false
+RESTORE_OLLAMA_MODELS=false
+OLLAMA_BACKUP_DIR=""
 
 LOG_FILE="/var/log/paperless-install.log"
 
@@ -77,6 +82,277 @@ show_section() {
     echo -e "${BOLD}${BLUE}  $1${NC}"
     echo -e "${BOLD}${BLUE}═══════════════════════════════════════════════════════════════════════════════${NC}"
     echo
+}
+
+# =============================================================================
+# RE-INSTALLATION HANDLING
+# =============================================================================
+
+check_existing_installation() {
+    if [[ -d "$STACK_DIR" ]] || docker ps -a --filter "name=paperless-" --format "{{.Names}}" 2>/dev/null | grep -q "paperless"; then
+        return 0  # Installation existiert
+    fi
+    return 1  # Keine Installation gefunden
+}
+
+show_existing_installation_info() {
+    echo
+    show_section "BESTEHENDE INSTALLATION GEFUNDEN"
+
+    # Zeige Container-Status
+    echo -e "${BOLD}Container-Status:${NC}"
+    local containers=($(docker ps -a --filter "name=paperless-" --format "{{.Names}}" 2>/dev/null || echo ""))
+    if [[ ${#containers[@]} -gt 0 ]]; then
+        for container in "${containers[@]}"; do
+            local status=$(docker inspect --format='{{.State.Status}}' "$container" 2>/dev/null || echo "unknown")
+            local status_color="$YELLOW"
+            [[ "$status" == "running" ]] && status_color="$GREEN"
+            [[ "$status" == "exited" ]] && status_color="$RED"
+            echo -e "  ${status_color}●${NC} $container: $status"
+        done
+    else
+        echo -e "  ${YELLOW}Keine Container gefunden${NC}"
+    fi
+    echo
+
+    # Zeige Verzeichnisse
+    echo -e "${BOLD}Installationsverzeichnisse:${NC}"
+    [[ -d "$STACK_DIR" ]] && echo -e "  ✓ $STACK_DIR ($(du -sh "$STACK_DIR" 2>/dev/null | cut -f1))"
+    [[ -d "/mnt/user/dokumente/paperless" ]] && echo -e "  ✓ /mnt/user/dokumente/paperless ($(du -sh /mnt/user/dokumente/paperless 2>/dev/null | cut -f1))"
+    [[ -d "/var/lib/paperless" ]] && echo -e "  ✓ /var/lib/paperless ($(du -sh /var/lib/paperless 2>/dev/null | cut -f1))"
+
+    # Zeige Ollama-Modelle
+    if [[ -d "$STACK_DIR/data/ollama" ]]; then
+        echo
+        echo -e "${BOLD}Ollama-Modelle:${NC}"
+        local ollama_size=$(du -sh "$STACK_DIR/data/ollama" 2>/dev/null | cut -f1)
+        echo -e "  ✓ Modell-Verzeichnis: $ollama_size"
+
+        # Versuche installierte Modelle zu listen
+        if docker ps --filter "name=paperless-ollama" --format "{{.Names}}" | grep -q "paperless-ollama"; then
+            echo -e "${CYAN}"
+            docker exec paperless-ollama ollama list 2>/dev/null | head -5 || echo "  (Container läuft, aber Modelle nicht abrufbar)"
+            echo -e "${NC}"
+        else
+            echo -e "  ${YELLOW}(Ollama Container läuft nicht - Modelle werden trotzdem erhalten)${NC}"
+        fi
+    fi
+    echo
+}
+
+handle_existing_installation() {
+    show_existing_installation_info
+
+    echo -e "${BOLD}${YELLOW}Was möchten Sie tun?${NC}"
+    echo
+    echo "  1) Installation abbrechen"
+    echo "  2) Container neu erstellen (behält ALLE Daten + Ollama-Modelle)"
+    echo "  3) Komplette Neuinstallation (⚠️  LÖSCHT ALLE DATEN außer Ollama-Modelle)"
+    echo "  4) Nur Container neustarten (keine Änderungen)"
+    echo
+
+    local choice
+    while true; do
+        read -p "$(echo -e ${CYAN}"Ihre Wahl [1-4]: "${NC})" choice
+        case $choice in
+            1)
+                log_info "Installation abgebrochen"
+                exit 0
+                ;;
+            2)
+                log_info "Container werden neu erstellt, Daten bleiben erhalten..."
+                recreate_containers
+                return 0
+                ;;
+            3)
+                confirm_full_reinstall
+                return 0
+                ;;
+            4)
+                log_info "Container werden neugestartet..."
+                restart_existing_containers
+                exit 0
+                ;;
+            *)
+                echo -e "${RED}Ungültige Eingabe. Bitte 1-4 wählen.${NC}"
+                ;;
+        esac
+    done
+}
+
+recreate_containers() {
+    log_info "Stoppe bestehende Container..."
+    cd "$STACK_DIR" 2>/dev/null || true
+    docker compose down 2>/dev/null || true
+
+    # Entferne Container manuell falls compose fehlschlägt
+    for container in $(docker ps -a --filter "name=paperless-" --format "{{.Names}}" 2>/dev/null); do
+        log_info "Entferne Container: $container"
+        docker rm -f "$container" 2>/dev/null || true
+    done
+
+    log_info "Behalte alle Datenverzeichnisse und Volumes..."
+    log_success "✓ Alle Daten bleiben erhalten"
+    log_success "✓ Ollama-Modelle bleiben erhalten (~5GB gespart)"
+    echo
+
+    # Entferne nur Konfigurationsdateien für Neuerstellung
+    if [[ -f "$STACK_DIR/.env" ]]; then
+        mv "$STACK_DIR/.env" "$STACK_DIR/.env.backup"
+        log_info "Alte .env als .env.backup gesichert"
+    fi
+
+    if [[ -f "$STACK_DIR/docker-compose.yml" ]]; then
+        mv "$STACK_DIR/docker-compose.yml" "$STACK_DIR/docker-compose.yml.backup"
+        log_info "Alte docker-compose.yml als .backup gesichert"
+    fi
+
+    log_success "Container-Neuinstallation vorbereitet"
+    echo
+
+    # Flag setzen, dass wir bestehende Daten haben
+    EXISTING_DATA=true
+}
+
+restart_existing_containers() {
+    cd "$STACK_DIR" || {
+        log_error "Stack-Verzeichnis nicht gefunden: $STACK_DIR"
+        exit 1
+    }
+
+    log_info "Starte Container neu..."
+    docker compose restart
+
+    log_success "Container wurden neugestartet"
+    docker compose ps
+}
+
+confirm_full_reinstall() {
+    echo
+    echo -e "${RED}${BOLD}⚠️  WARNUNG: KOMPLETTE NEUINSTALLATION ⚠️${NC}"
+    echo
+    echo -e "${YELLOW}Dies wird löschen:${NC}"
+    echo -e "  ❌ Alle Docker Container"
+    echo -e "  ❌ Alle Paperless-NGX Dokumente und Datenbank"
+    echo -e "  ❌ Alle Paperless-AI Daten"
+    echo -e "  ❌ PostgreSQL und Redis Daten"
+    echo
+    echo -e "${GREEN}Dies wird erhalten:${NC}"
+    echo -e "  ✓ Ollama-Modelle (Gemma2:9B ~5GB)"
+    echo
+
+    read -p "$(echo -e ${RED}${BOLD}"Wirklich ALLE DATEN löschen? (yes/NO): "${NC})" confirm
+
+    if [[ "$confirm" == "yes" ]]; then
+        full_reinstall
+    else
+        log_info "Neuinstallation abgebrochen"
+        exit 0
+    fi
+}
+
+full_reinstall() {
+    log_warning "Starte komplette Neuinstallation..."
+
+    # Backup der Ollama-Modelle
+    backup_ollama_models
+
+    # Stoppe und lösche alle Container + Volumes
+    log_info "Stoppe und lösche alle Container und Volumes..."
+    cd "$STACK_DIR" 2>/dev/null && docker compose down -v 2>/dev/null || true
+
+    # Entferne Container manuell
+    for container in $(docker ps -a --filter "name=paperless-" --format "{{.Names}}" 2>/dev/null); do
+        log_info "Entferne Container: $container"
+        docker rm -f "$container" 2>/dev/null || true
+    done
+
+    # Entferne Volumes
+    for volume in $(docker volume ls --filter "name=paperless" --format "{{.Name}}" 2>/dev/null); do
+        log_info "Entferne Volume: $volume"
+        docker volume rm -f "$volume" 2>/dev/null || true
+    done
+
+    # Lösche Verzeichnisse (außer Ollama-Backup)
+    log_info "Lösche Installationsverzeichnisse..."
+    [[ -d "$STACK_DIR" ]] && rm -rf "$STACK_DIR"
+
+    # Frage nach Paperless-Datenverzeichnis
+    if [[ -d "/mnt/user/dokumente/paperless" ]]; then
+        echo
+        read -p "$(echo -e ${YELLOW}"Auch /mnt/user/dokumente/paperless löschen? (yes/NO): "${NC})" delete_data
+        if [[ "$delete_data" == "yes" ]]; then
+            rm -rf /mnt/user/dokumente/paperless
+            log_warning "Paperless-Datenverzeichnis gelöscht"
+        else
+            log_info "Paperless-Datenverzeichnis bleibt erhalten"
+        fi
+    fi
+
+    log_success "Alte Installation vollständig entfernt"
+    echo
+
+    # Setze Flag für Ollama-Restore
+    RESTORE_OLLAMA_MODELS=true
+}
+
+backup_ollama_models() {
+    local ollama_dir="$STACK_DIR/data/ollama"
+
+    if [[ ! -d "$ollama_dir" ]]; then
+        log_warning "Keine Ollama-Modelle gefunden zum Sichern"
+        return 0
+    fi
+
+    local backup_dir="/tmp/ollama_backup_$(date +%Y%m%d_%H%M%S)"
+    OLLAMA_BACKUP_DIR="$backup_dir"
+
+    log_info "Sichere Ollama-Modelle nach $backup_dir..."
+    log_info "Dies kann einige Minuten dauern (~5GB)..."
+
+    mkdir -p "$backup_dir"
+
+    if cp -a "$ollama_dir" "$backup_dir/"; then
+        local backup_size=$(du -sh "$backup_dir" 2>/dev/null | cut -f1)
+        log_success "✓ Ollama-Modelle gesichert: $backup_size"
+        OLLAMA_BACKUP_DIR="$backup_dir/ollama"
+    else
+        log_error "Backup der Ollama-Modelle fehlgeschlagen!"
+        log_warning "Modelle müssen nach Installation neu geladen werden"
+        OLLAMA_BACKUP_DIR=""
+    fi
+}
+
+restore_ollama_models() {
+    if [[ -z "$OLLAMA_BACKUP_DIR" ]] || [[ ! -d "$OLLAMA_BACKUP_DIR" ]]; then
+        log_warning "Kein Ollama-Modell-Backup gefunden"
+        return 1
+    fi
+
+    local target_dir="$STACK_DIR/data/ollama"
+
+    log_info "Stelle Ollama-Modelle wieder her..."
+    log_info "Ziel: $target_dir"
+
+    # Erstelle Zielverzeichnis
+    mkdir -p "$target_dir"
+
+    # Kopiere Modelle zurück
+    if cp -a "$OLLAMA_BACKUP_DIR/"* "$target_dir/"; then
+        log_success "✓ Ollama-Modelle wiederhergestellt"
+
+        # Setze korrekte Berechtigungen
+        chown -R "$DOCKER_USER:$DOCKER_USER" "$target_dir"
+
+        # Lösche Backup
+        rm -rf "$(dirname "$OLLAMA_BACKUP_DIR")"
+        log_info "Backup-Verzeichnis aufgeräumt"
+
+        return 0
+    else
+        log_error "Wiederherstellung der Ollama-Modelle fehlgeschlagen"
+        return 1
+    fi
 }
 
 # =============================================================================
@@ -352,51 +628,13 @@ collect_credentials() {
 # =============================================================================
 
 cleanup_existing_installation() {
-    show_section "BESTEHENDE INSTALLATION PRÜFEN"
-
-    local existing_found=false
-
-    if command -v docker >/dev/null 2>&1; then
-        if docker ps -a --filter "name=paperless" -q 2>/dev/null | grep -q .; then
-            existing_found=true
-        fi
-    fi
-
-    if [[ -d "$STACK_DIR" ]]; then
-        existing_found=true
-    fi
-
-    if [[ "$existing_found" == "true" ]]; then
-        echo -e "${YELLOW}Bestehende Installation gefunden.${NC}"
-        echo -n "➤ Komplett bereinigen? [j/N]: "
-        read -r cleanup_choice
-
-        if [[ "$cleanup_choice" =~ ^[jJyY]$ ]]; then
-            log_info "Bereinige bestehende Installation..."
-
-            if command -v docker >/dev/null 2>&1; then
-                docker ps -a --filter "name=paperless" -q 2>/dev/null | xargs -r docker rm -f >/dev/null 2>&1 || true
-                docker ps -a --filter "name=ollama" -q 2>/dev/null | xargs -r docker rm -f >/dev/null 2>&1 || true
-                docker images --filter "reference=*paperless*" -q 2>/dev/null | xargs -r docker rmi -f >/dev/null 2>&1 || true
-                docker images --filter "reference=*ollama*" -q 2>/dev/null | xargs -r docker rmi -f >/dev/null 2>&1 || true
-                docker volume ls --filter "name=paperless" -q 2>/dev/null | xargs -r docker volume rm -f >/dev/null 2>&1 || true
-                docker volume ls --filter "name=ollama" -q 2>/dev/null | xargs -r docker volume rm -f >/dev/null 2>&1 || true
-                docker network ls --filter "name=paperless" -q 2>/dev/null | xargs -r docker network rm >/dev/null 2>&1 || true
-                log_info "✓ Docker Container und Volumes entfernt"
-            fi
-
-            if [[ -d "$STACK_DIR" ]]; then
-                rm -rf "$STACK_DIR"
-                log_info "✓ Installationsverzeichnis entfernt: $STACK_DIR"
-            fi
-
-            if command -v docker >/dev/null 2>&1; then
-                docker system prune -f >/dev/null 2>&1 || true
-                log_info "✓ Docker System bereinigt"
-            fi
-
-            log_success "✓ Bereinigung abgeschlossen"
-        fi
+    # Prüfe ob bestehende Installation vorhanden ist
+    if check_existing_installation; then
+        handle_existing_installation
+        # Nach handle_existing_installation wird entweder:
+        # - exit 0 (bei Abbruch oder Neustart)
+        # - EXISTING_DATA=true gesetzt (bei Container-Update)
+        # - RESTORE_OLLAMA_MODELS=true gesetzt (bei Komplett-Neuinstallation)
     else
         log_info "✓ Keine bestehende Installation gefunden"
     fi
@@ -1080,7 +1318,27 @@ start_stack() {
     if ! wait_for_ollama; then
         log_error "Ollama konnte nicht gestartet werden - fahre ohne Modell fort"
     else
-        download_ollama_model || log_warning "Modell-Download übersprungen - kann später nachgeholt werden"
+        # Prüfe ob Ollama-Modelle wiederhergestellt werden müssen
+        if [[ "$RESTORE_OLLAMA_MODELS" == "true" ]]; then
+            if restore_ollama_models; then
+                log_success "✓ Ollama-Modelle aus Backup wiederhergestellt"
+            else
+                log_warning "Wiederherstellung fehlgeschlagen - lade Modell neu herunter"
+                download_ollama_model || log_warning "Modell-Download übersprungen - kann später nachgeholt werden"
+            fi
+        elif [[ "$EXISTING_DATA" == "true" ]]; then
+            # Bei Container-Update: Prüfe ob Modell bereits vorhanden ist
+            log_info "Prüfe vorhandene Ollama-Modelle..."
+            if sudo -u "$DOCKER_USER" docker exec paperless-ollama ollama list 2>/dev/null | grep -q "gemma2:9b"; then
+                log_success "✓ Gemma2:9B Modell bereits vorhanden - überspringe Download"
+            else
+                log_info "Kein Modell gefunden - starte Download..."
+                download_ollama_model || log_warning "Modell-Download übersprungen - kann später nachgeholt werden"
+            fi
+        else
+            # Normale Neuinstallation: Lade Modell herunter
+            download_ollama_model || log_warning "Modell-Download übersprungen - kann später nachgeholt werden"
+        fi
     fi
 
     log_info "Starte Paperless-NGX Container..."

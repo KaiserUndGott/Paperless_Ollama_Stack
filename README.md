@@ -2,7 +2,7 @@
 
 Vollautomatisches Installations-Script für eine komplette Dokumentenverwaltungs-Lösung mit lokaler KI-Integration.
 
-**Version 12.1.2** - Multi-Platform (Ubuntu/Unraid)
+**Version 12.2.0** - Multi-Platform mit Re-Installation Support
 
 ## 🎯 Features
 
@@ -128,6 +128,58 @@ Container-Status:
 - Cyan = Kein Health-Check konfiguriert
 
 Bei Problemen zeigt das Script automatisch Troubleshooting-Hinweise an.
+
+## 🔄 Re-Installation und Updates
+
+Das Script erkennt automatisch bestehende Installationen und bietet verschiedene Optionen:
+
+### Bestehende Installation erkannt
+
+Wenn das Script eine vorhandene Installation findet, werden folgende Informationen angezeigt:
+- Status aller Container (running/stopped)
+- Installationsverzeichnisse mit Größenangaben
+- Vorhandene Ollama-Modelle
+
+### Re-Installationsoptionen
+
+```
+Was möchten Sie tun?
+
+  1) Installation abbrechen
+  2) Container neu erstellen (behält ALLE Daten + Ollama-Modelle)
+  3) Komplette Neuinstallation (⚠️  LÖSCHT ALLE DATEN außer Ollama-Modelle)
+  4) Nur Container neustarten (keine Änderungen)
+```
+
+**Option 1 - Abbrechen**: Script wird beendet, keine Änderungen
+
+**Option 2 - Container neu erstellen** (empfohlen für Updates):
+- ✓ Behält alle Paperless-Dokumente und Datenbank
+- ✓ Behält Ollama-Modelle (~5GB gespart!)
+- ✓ Erstellt Container mit neuer Konfiguration
+- ✓ Ideal für: Updates, Konfigurationsänderungen, Port-Anpassungen
+
+**Option 3 - Komplette Neuinstallation**:
+- ⚠️  Löscht alle Paperless-Dokumente und Datenbank
+- ✓ Behält Ollama-Modelle (automatisches Backup und Wiederherstellung)
+- ✓ "Frischer Start" mit allen Daten gelöscht
+- ⚠️  Benötigt explizite Bestätigung mit "yes"
+
+**Option 4 - Container neustarten**:
+- Startet alle Container neu ohne Änderungen
+- Nützlich bei temporären Problemen
+
+### Ollama-Modell-Erhaltung
+
+Das Script schützt die Ollama-Modelle (ca. 5GB) bei Re-Installationen:
+
+- **Container-Update** (Option 2): Modelle bleiben automatisch erhalten
+- **Komplette Neuinstallation** (Option 3):
+  - Automatisches Backup nach `/tmp/ollama_backup_YYYYMMDD_HHMMSS/`
+  - Wiederherstellung nach Neuinstallation
+  - Backup wird nach erfolgreicher Wiederherstellung gelöscht
+
+Falls die Wiederherstellung fehlschlägt, lädt das Script das Modell automatisch neu herunter.
 
 ## 🔧 Konfiguration
 
